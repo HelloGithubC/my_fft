@@ -42,8 +42,8 @@ setup(
         'my_fft': ['lib/*'],  # 指定 lib 文件夹中的所有文件
     },
     install_requires=[
-        'numpy>=1.31.0',  # Minimum version compatible with Python 3.6
-        'scipy>=1.20.0',   # Minimum version compatible with Python 3.6
+        'numpy>=1.20.0',  # Minimum version compatible with Python 3.6
+        'scipy>=1.31.0',   # Minimum version compatible with Python 3.6
         "joblib",
     ], 
 )
