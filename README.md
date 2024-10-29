@@ -10,7 +10,7 @@ A simple python module to do cic and calculate FFTPower P(k) and P(k,\mu) based 
 
 ### Dependency
 CXX compilers: support c++11 and openmp 
-others: pybind11, numpy and scipy. They will be install through automatic installation with pip.
+others: pybind11>=1.29.0. Recommend to install it by pip or conda, especially you want to install my_fft wint Method 1.
 
 ### Method 
 1. setup.py: pip install . (Recommend)
