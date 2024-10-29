@@ -221,8 +221,8 @@ class Mesh:
             if not self.is_structured_array(data):
                 raise ValueError(
                     (
-                        "input data must have a "
-                        "structured data type"
+                        "input data to ArrayCatalog must have a "
+                        "structured data type with fields"
                     )
                 )
 
