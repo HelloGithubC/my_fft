@@ -27,7 +27,7 @@ others: pybind11>=1.29.0. Recommend to install it by pip or conda, especially wh
 
 1. For Makefile: it's neccessary to install pybind11 using pip or conda if you don't want to change CXXFLAGS by yourself.
 
-2. For CMake: you need to change the path of cmake files of pybind11 in CMakeLists.txt by yourself. Or you need to delete the path of them if you install pybind11 by cmake.
+2. For CMake: you need to change the path of cmake files of pybind11 in CMakeLists.txt by yourself. Or you need to delete the path of them if you install pybind11 by cmake or conan with cmake build tools.
 
 ### Others 
 I provide conan file at conanfile.txt 
