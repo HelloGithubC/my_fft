@@ -20,7 +20,7 @@ others: pybind11>=1.29.0. Recommend to install it by pip or conda, especially yo
 3. CMake: mkdir build; cd build; cmake ../ -DCMAKE_BUILD_TYPE="Release"; make. And then go back the root direction to do pip install .
 
 ### Details 
-0. "pip install ." can check if lib files exist. If they exist, will just install the package without compilation.
+0. "pip install ." can check if lib files exist. If they exist, will just install the package without compilation. The compilation use Makefile, so you can modify it by yourself if you meet some errors.
 
 1. For Makefile: it's neccessary to install pybind11 using pip or conda if you don't want to change CXXFLAGS by yourself.
 
