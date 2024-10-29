@@ -33,6 +33,7 @@ setup(
     name='my_fft',
     include_package_data=True,
     version='1.0',
+    python_requires=">=3.8",
     description='A Python wrapper for FFT operations using Pybind11',
     author='Xiao Liang',
     author_email='xiaoliang5@mail2.sysu.edu.com',
@@ -43,5 +44,7 @@ setup(
     install_requires=[
         'numpy>=1.16.0',  # Minimum version compatible with Python 3.6
         'scipy>=1.2.0',   # Minimum version compatible with Python 3.6
+        'pybind11>=2.9.0',
+        "joblib",
     ], 
 )

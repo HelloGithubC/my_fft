@@ -1,18 +1,23 @@
-# my_fft
-A simple python module to do cic and calculate FFTPower P(k,\mu) based on C++ and pybind11
+## my_fft
+A simple python module to do cic and calculate FFTPower P(k) and P(k,\mu) based on C++ and pybind11. Now support Doing cic 3D mesh and calculating 1D and 2D PS(Pk and Pkmu) of simulation box.
+
+## Features 
+1. Easy to use. Without some complex objects. Do cic, do fft and compensating and calculate P(k) and P(k,\mu) just need input simple ndarray data. It means you can insert them to your codes easily.
+
+2. Based on C++ and support openmp. Fast and fully use multiple cores with saving memory.
 
 ## INSTALL 
 
 ### Dependency
 CXX compilers: support c++11 and openmp 
-others: pybind11 
+others: pybind11, numpy and scipy. They will be install through automatic installation with pip.
 
 ### Method 
 1. setup.py: pip install . (Recommend)
 
 2. Makefile: make && pip install .
 
-3. CMake: mkdir build; cd build; cmake ../ -DCMAKE_BUILD_TYPE="Release"; make; and then do pip install .
+3. CMake: mkdir build; cd build; cmake ../ -DCMAKE_BUILD_TYPE="Release"; make. And then go back the root direction to do pip install .
 
 ### Details 
 0. "pip install ." can check if lib files exist. If they exist, will just install the package without compilation.

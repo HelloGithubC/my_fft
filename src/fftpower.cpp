@@ -260,7 +260,7 @@ void FFTPower::CountNumberCore(py::array_t<int>& numbers, py::array_t<double>& k
     }
 }
 
-void FFTPower::RunFromComplex(py::array_t<std::complex<double>>& power, py::array_t<double>& power_mu, py::array_t<double>& power_k, py::array_t<int>& power_modes, py::array_t<std::complex<float>>& complex_field, py::array_t<double>& k_array, py::array_t<double>& mu_array, double k_min, double k_max, py::array_t<double>& k_x_array, py::array_t<double>& k_y_array, py::array_t<double>& k_z_array, std::string mode, bool right, bool linear, bool done_conj, int nthreads)
+void FFTPower::RunFromComplex(py::array_t<std::complex<double>>& power, py::array_t<double>& power_mu, py::array_t<double>& power_k, py::array_t<int>& power_modes, py::array_t<std::complex<float>>& complex_field, py::array_t<double>& k_array, py::array_t<double>& mu_array, double k_min, double k_max, py::array_t<double>& k_x_array, py::array_t<double>& k_y_array, py::array_t<double>& k_z_array, std::string mode, bool right, bool linear, bool do_conj, int nthreads)
 {
     if (power.ndim() != 2 || power_mu.ndim() != 2 || power_k.ndim() != 2)
     {
@@ -347,8 +347,8 @@ void FFTPower::RunFromComplex(py::array_t<std::complex<double>>& power, py::arra
             {
                 for (int k=0; k<k_z_array.shape(0); k++)
                 {
-                    if (!done_conj)
-                        com_it(i,j,k) *= std::conj(com_it(i,j,k)); // if we had do Conj, not need there
+                    if (do_conj)
+                        com_it(i,j,k) *= std::conj(com_it(i,j,k)); 
                     k_temp = std::sqrt(k_x_it(i)*k_x_it(i) + k_y_it(j)*k_y_it(j) + k_z_it(k)*k_z_it(k));
 
                     if (k_temp == 0 || k_temp < k_min_limit || k_temp > k_max_limit)
@@ -438,7 +438,7 @@ PYBIND11_MODULE(fftpower, m) {
         .def(py::init<py::array_t<double>&>())
         .def("Digitize", &FFTPower::Digitize, 
              py::arg("bins"), py::arg("values"), py::arg("array"), 
-             py::arg("right") = true, py::arg("linear"), 
+             py::arg("right") = true, py::arg("linear") = true, 
              py::arg("threads") = 1)
         .def("DoConj", &FFTPower::DoConj, py::arg("complex_field"), py::arg("nthreads") =1)
         .def("IsConj", &FFTPower::IsConj)
@@ -453,6 +453,6 @@ PYBIND11_MODULE(fftpower, m) {
              py::arg("complex_field"), py::arg("k_array"), 
              py::arg("mu_array"), py::arg("k_min"), py::arg("k_max"), 
              py::arg("k_x_array"), py::arg("k_y_array"), py::arg("k_z_array"), 
-             py::arg("mode") = "1d", py::arg("right") = false, py::arg("linear"), py::arg("done_conj") = false,
+             py::arg("mode") = "1d", py::arg("right") = false, py::arg("linear") = true, py::arg("do_conj") = false,
              py::arg("nthreads") = 1);
 }
