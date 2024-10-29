@@ -30,7 +30,7 @@ others: pybind11>=1.29.0. Recommend to install it by pip or conda, especially wh
 2. For CMake: you need to change the path of cmake files of pybind11 in CMakeLists.txt by yourself. Or you need to delete the path of them if you install pybind11 by cmake or conan with cmake build tools.
 
 ### Example 
-You can python test/test.py to see if you install it done. You will obtain two fftpower files and you can compare them with test/test_power_1D_check.pkl and test_power_2D_check.pkl to see if the result is correct.
+You can python test/test.py to see if you install it completely. You will obtain two fftpower files and you can compare them with test/test_power_1D_check.pkl and test_power_2D_check.pkl to see if the result is correct.
 
 You can open test/example.ipynb to see how to use it. 
 
