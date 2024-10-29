@@ -13,7 +13,7 @@ CXX compilers: support c++11 and openmp
 
 Python: >=3.8
 
-others: pybind11>=1.29.0. Recommend to install it by pip or conda, especially you want to install my_fft wint Method 1.
+others: pybind11>=1.29.0. Recommend to install it by pip or conda, especially when you want to install my_fft with Method 1.
 
 ### Method 
 1. setup.py: pip install . (Recommend)
