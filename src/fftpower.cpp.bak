@@ -1,0 +1,358 @@
+#include "fftpower.h"
+#include <cstdio>
+#include <limits>
+#include <omp.h>
+
+FFTPower::FFTPower(py::array_t<double>& boxSize)
+{
+    if (boxSize.size() != this->ndim)
+    {
+        throw std::runtime_error("The length of boxSize must be 3.");
+    }
+    auto boxSize_it = boxSize.mutable_unchecked<1>();
+    this->boxSize.resize(this->ndim);
+    for (int i=0; i<this->ndim; i++)
+    {
+        this->boxSize[i] = boxSize_it(i);
+    }
+}
+
+void FFTPower::CountNumber(py::array_t<int>& numbers, py::array_t<double>& k_array, py::array_t<double>& mu_array, py::array_t<double>& k_x_array, py::array_t<double>& k_y_array, py::array_t<double>& k_z_array, int threads)
+{
+    // To Do
+    if (numbers.ndim() != 2)
+    {
+        throw std::runtime_error("The length of numbers must be 2.");
+    }
+    if (k_array.ndim() != 1 || mu_array.ndim() != 1)
+    {
+        throw std::runtime_error("The length of k_array and mu_array must be 1.");
+    }
+
+    if (k_x_array.ndim() != 1 || k_y_array.ndim() != 1 || k_z_array.ndim() != 1)
+    {
+        throw std::runtime_error("The length of k_x_array, k_y_array and k_z_array must be 1.");
+    }
+    
+    this->CountNumberCore(numbers, k_array, mu_array, k_x_array, k_y_array, k_z_array,threads);
+}
+int FFTPower::FindBin(double value, py::array_t<double>& array, double edgePrecision, bool right)
+{
+    bool order;
+    py::ssize_t it;
+    size_t array_size = array.size();
+    if (array_size < 2)
+    {
+        throw std::runtime_error("The length of array must be larger than 2.");
+    }
+    auto array_iterator = array.unchecked<1>();
+    if (array_iterator(0) < array_iterator(1))
+    {
+        order = true;
+    }
+    else
+    {
+        order = false;
+    }
+
+    if (order)
+    {
+        if (value < array_iterator(0))
+        {
+            return 0;
+        }
+    }
+    else 
+    {
+        if (value > array_iterator(0))
+        {
+            return 0;
+        }
+    }
+
+    if (right)
+    {
+        // Only right == True we need deal with value == array_iterator(0)
+        if (std::abs(value - array_iterator(0)) < edgePrecision)
+        {
+            return 1;
+        }
+    }
+    else 
+    {
+        // Only right == False we need deal with value == array_iterator(size - 1)
+        if (std::abs(value - array_iterator(array_size - 1)) < edgePrecision)
+        {
+            return array.size();
+        }
+    }
+
+    for (it = 0; it < array_iterator.shape(0) - 1; it++)
+    {
+        if (order)
+        {
+            if (array_iterator(it) > array_iterator(it+1))
+            {
+                throw std::runtime_error("The array must be ordered.");
+            }
+            if (right)
+            {
+                if (value > array_iterator(it) && value <= array_iterator(it+1))
+                {
+                    return it+1;
+                }
+            }
+            else 
+            {
+                if (value <= array_iterator(it) && value > array_iterator(it+1))
+                {
+                    return it+1;
+                }
+            }
+        }
+        else 
+        {
+            if (array_iterator(it) < array_iterator(it+1))
+            {
+                throw std::runtime_error("The array must be ordered.");
+            }
+            if (right)
+            {
+                if (value < array_iterator(it) && value >= array_iterator(it+1))
+                {
+                    return it+1;
+                }
+            }
+            else 
+            {
+                if (value >= array_iterator(it) && value < array_iterator(it+1))
+                {
+                    return it+1;
+                }
+            }
+        }
+    }
+    return it+1;
+}
+
+void FFTPower::CountNumberCore(py::array_t<int>& numbers, py::array_t<double>& k_array, py::array_t<double>& mu_array, py::array_t<double>& k_x_array, py::array_t<double>& k_y_array, py::array_t<double>& k_z_array, int threads)
+{
+    py::ssize_t k_bins_number = numbers.shape(0);
+    py::ssize_t mu_bins_number = numbers.shape(1);
+
+    // py::ssize_t k_array_size = k_array.shape(0);
+    // py::ssize_t mu_array_size = mu_array.shape(0);
+
+    py::ssize_t k_x_array_size = k_x_array.shape(0);
+    py::ssize_t k_y_array_size = k_y_array.shape(0);
+    py::ssize_t k_z_array_size = k_z_array.shape(0);
+
+    omp_set_num_threads(threads);
+    #pragma omp parallel
+    {
+        py::ssize_t i,j,k, k_index, mu_index;
+        double k_x, k_y, k_z, k_temp, mu_temp;
+        auto k_x_iterator = k_x_array.unchecked<1>();
+        auto k_y_iterator = k_y_array.unchecked<1>();
+        auto k_z_iterator = k_z_array.unchecked<1>();
+        auto numbers_iterator = numbers.mutable_unchecked<2>();
+
+        #pragma omp for 
+        for(i=0; i<k_x_array_size; i++)
+        {
+            for(j=0; j<k_y_array_size; j++)
+            {
+                for(k=0; k<k_z_array_size; k++)
+                {
+                    k_x = k_x_iterator(i);
+                    k_y = k_y_iterator(j);
+                    k_z = k_z_iterator(k);
+                    k_temp = std::sqrt(k_x*k_x + k_y*k_y + k_z * k_z);
+                    if (k_temp == 0)
+                        continue;
+                    mu_temp = k_z / k_temp;
+
+                    k_index = FindBin(k_temp, k_array, 1e-8,true) - 1;
+                    mu_index = FindBin(mu_temp, mu_array, 1e-8,true) - 1;
+                    if (k_index >= 0 && k_index < k_bins_number && mu_index >= 0 && mu_index < mu_bins_number)
+                    {
+                        #pragma omp atomic
+                        numbers_iterator(k_index,mu_index) += 1;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void FFTPower::RunFromComplex(py::array_t<std::complex<double>>& power, py::array_t<double>& power_mu, py::array_t<double>& power_k,py::array_t<bool>& power_nan, py::array_t<std::complex<float>>& complex_field, py::array_t<double>& k_array, py::array_t<double>& mu_array, py::array_t<double>& k_x_array, py::array_t<double>& k_y_array, py::array_t<double>& k_z_array, std::string mode, int threads)
+{
+    int i,j,k;
+
+    if (power.ndim() != 2 || power_mu.ndim() != 2 || power_k.ndim() != 2)
+    {
+        throw std::runtime_error("The ndim of power, power_k and power_mu must be 2.");
+    }
+    py::ssize_t k_bins_number = power.shape(0);
+    py::ssize_t mu_bins_number = power.shape(1);
+
+    if (complex_field.ndim() != this->ndim)
+    {
+        throw std::runtime_error("The ndim of complex_field must be 3.");
+    }
+    if (complex_field.shape(0) != k_x_array.shape(0) || complex_field.shape(1) != k_y_array.shape(0) || complex_field.shape(2) != k_z_array.shape(0))
+    {
+        throw std::runtime_error("The shape of complex_field must be the same as (k_x_array, k_y_array, k_z_array).");
+    }
+
+    if (k_array.ndim() != 1 && mu_array.ndim() != 1)
+    {
+        throw std::runtime_error("The ndim of k_array and mu_array must be 1.");
+    }
+    if (k_x_array.ndim() != 1 && k_y_array.ndim() != 1 && k_z_array.ndim() != 1)
+    {
+        throw std::runtime_error("The ndim of k_x_array, k_y_array and k_z_array must be 1.");
+    }
+
+    omp_set_num_threads(threads);
+    auto com_it = complex_field.mutable_unchecked<3>();
+
+    #pragma omp for private(i,j,k)
+    for (i=0; i<com_it.shape(0); i++)
+    {
+        for (j=0; j<com_it.shape(1); j++)
+        {
+            for (k=0; k<com_it.shape(2); k++)
+            {
+                com_it(i,j,k) *= std::conj(com_it(i,j,k));
+            }
+        }
+    }
+
+    auto power_it = power.mutable_unchecked<2>();
+    auto power_k_it = power_k.mutable_unchecked<2>();
+    auto power_mu_it = power_mu.mutable_unchecked<2>();
+    auto k_x_it = k_x_array.unchecked<1>();
+    auto k_y_it = k_y_array.unchecked<1>();
+    auto k_z_it = k_z_array.unchecked<1>();
+    auto power_nan_it = power_nan.mutable_unchecked<2>();
+    // auto k_it = k_array.unchecked<1>();
+    // auto mu_it = mu_array.unchecked<1>();
+
+    std::vector<std::vector<int>> power_numbers;
+    power_numbers.resize(k_bins_number);
+    for (i=0; i<k_bins_number; i++)
+    {
+        power_numbers[i].resize(mu_bins_number);
+        for (j=0; j<mu_bins_number; j++)
+        {
+            power_numbers[i][j] = 0;
+        }
+    }
+
+    #pragma omp parallel 
+    {
+        py::ssize_t k_index = 0;
+        py::ssize_t mu_index = 0;
+        double k_temp = 0.0;
+        double mu_temp = 0.0;
+        std::complex<float> boxSize_factor(1.0f, 0.0f); 
+        for (i=0; i<this->ndim; i++)
+        {
+            boxSize_factor *= this->boxSize[i];
+        }
+        #pragma omp for private(i,j,k,k_index,mu_index,k_temp,mu_temp)
+        for (i=0; i<k_x_array.shape(0); i++)
+        {
+            for (j=0; j<k_y_array.shape(0); j++)
+            {
+                for (k=0; k<k_z_array.shape(0); k++)
+                {
+                    k_temp = std::sqrt(k_x_it(i)*k_x_it(i) + k_y_it(j)*k_y_it(j) + k_z_it(k)*k_z_it(k));
+                    if (k_temp == 0)
+                    {
+                        #pragma omp critical
+                        {
+                            power_numbers[0][0] += 1;
+                            power_k_it(0,0) = 0.0;
+                            if (mode == "2d")
+                            {
+                                power_mu_it(0,0) = 0.0;
+                            }
+                            power_it(0,0) = 0.0;
+                        }
+                        continue;
+                    }
+                    k_index = FindBin(k_temp, k_array, 1e-8,true) - 1;
+                    if (mode == "2d")
+                    {
+                        mu_temp = k_z_it(k) / k_temp;
+                        mu_index = FindBin(mu_temp, mu_array, 1e-8,true) - 1;
+
+                    }
+                    else
+                    {
+                        mu_index = 0;
+                    }
+                    if (k_index >= 0 && k_index < k_bins_number && mu_index >= 0 && mu_index < mu_bins_number)
+                    {
+                        #pragma omp critical
+                        {
+                            power_it(k_index,mu_index).real(power_it(k_index,mu_index).real() + com_it(i,j,k).real() * boxSize_factor.real());
+                        }
+                        #pragma omp atomic
+                        power_k_it(k_index,mu_index) += k_temp;
+                        if (mode == "2d")
+                        {
+                            #pragma omp atomic
+                            power_mu_it(k_index,mu_index) += mu_temp;
+                        }
+                        #pragma omp atomic 
+                        power_numbers[k_index][mu_index] += 1;
+                    }
+                }
+            }
+        }
+
+        #pragma omp for private(i,j)
+        for (i=0; i<k_bins_number; i++)
+        {
+            for (j=0; j<mu_bins_number; j++)
+            {
+                if (power_numbers[i][j] > 0)
+                {
+                    power_it(i,j).real(power_it(i,j).real()/power_numbers[i][j]);
+                    power_k_it(i,j) /= power_numbers[i][j];
+                    if (mode == "2d")
+                        power_mu_it(i,j) /= power_numbers[i][j];
+                    power_nan_it(i,j) = false;
+                }
+                else 
+                {
+                    power_it(i,j).real(0.0);
+                    power_k_it(i,j) = 0.0;
+                    if (mode == "2d")
+                        power_mu_it(i,j) = 0.0;
+                    power_nan_it(i,j) = true;
+                }
+            }
+        }
+    }
+}
+
+PYBIND11_MODULE(fftpower, m) {
+    py::class_<FFTPower>(m, "FFTPower_CPP")
+        .def(py::init<py::array_t<double>&>())
+        .def("CountNumber", &FFTPower::CountNumber, 
+             py::arg("numbers"), py::arg("k_array"), 
+             py::arg("mu_array"), py::arg("k_x_array"), 
+             py::arg("k_y_array"), py::arg("k_z_array"), 
+             py::arg("threads") = 1)
+        .def("RunFromComplex", &FFTPower::RunFromComplex, 
+             py::arg("power"), py::arg("power_mu"), py::arg("power_k"), 
+             py::arg("power_nan"),
+             py::arg("complex_field"), py::arg("k_array"), 
+             py::arg("mu_array"), py::arg("k_x_array"), 
+             py::arg("k_y_array"), py::arg("k_z_array"), 
+             py::arg("mode") = "1d", py::arg("threads") = 1);
+}

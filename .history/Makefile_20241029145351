@@ -1,0 +1,42 @@
+# Makefile for building C++ tasks with pybind11
+
+# Compiler and flags
+CXX ?= g++ # Specific C++ compiler
+BUILD_TYPE ?= Release  # Default to Release mode
+ifeq ($(BUILD_TYPE), Release)
+    CXXFLAGS = -O2 -Wall -shared -fPIC $(shell python3 -m pybind11 --includes) -fopenmp
+else ifeq ($(BUILD_TYPE), Debug)
+    CXXFLAGS = -O0 -Wall -shared -fPIC $(shell python3 -m pybind11 --includes) -fopenmp
+else
+    $(error Invalid BUILD_TYPE: $(BUILD_TYPE). Use Release or Debug.)
+endif
+
+LDFLAGS = -fopenmp
+
+# Directories
+SRC_DIR = src
+LIB_DIR = lib
+
+# Source files
+SOURCES = $(SRC_DIR)/fftpower.cpp $(SRC_DIR)/mesh.cpp
+
+# Output files
+OBJECTS = $(SOURCES:$(SRC_DIR)/%.cpp=$(LIB_DIR)/%.so)
+
+# Targets
+.PHONY: all fftpower mesh clean
+
+# Default target
+all: fftpower mesh
+
+# Build fftpower
+$(LIB_DIR)/fftpower.so: $(SRC_DIR)/fftpower.cpp
+	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS)
+
+# Build mesh
+$(LIB_DIR)/mesh.so: $(SRC_DIR)/mesh.cpp
+	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS)
+
+# Clean up
+clean:
+	rm -f $(LIB_DIR)/*.so

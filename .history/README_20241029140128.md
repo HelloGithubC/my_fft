@@ -1,0 +1,2 @@
+# my_fft
+A simple python module to do cic and calculate FFTPower P(k,\mu) based on C++ and pybind11
