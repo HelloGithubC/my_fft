@@ -9,7 +9,7 @@ A simple python module to do cic and calculate FFTPower P(k) and P(k,\mu) based 
 ## INSTALL 
 
 ### Dependency
-CXX compilers: support c++11 and openmp 
+CXX compilers: support c++11 and openmp (Note that you need install "libomp-dev" in Ubuntu or other similar name in other systems first if you want to use clang)
 
 Python: >=3.8
 

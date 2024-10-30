@@ -4,9 +4,9 @@
 CXX ?= g++ # Specific C++ compiler
 BUILD_TYPE ?= Release
 ifeq ($(BUILD_TYPE), Release)
-    CXXFLAGS = -O2 -std=c++11 -Wall -shared -fPIC $(shell python3 -m pybind11 --includes) -fopenmp
+    CXXFLAGS = -O2 -std=c++11 -Wall -shared -fPIC $(shell python3 -m pybind11 --includes) 
 else ifeq ($(BUILD_TYPE), Debug)
-    CXXFLAGS = -O0 -std=c++11 -Wall -shared -fPIC $(shell python3 -m pybind11 --includes) -fopenmp
+    CXXFLAGS = -O0 -std=c++11 -Wall -shared -fPIC $(shell python3 -m pybind11 --includes) 
 else
     $(error Invalid BUILD_TYPE: $(BUILD_TYPE). Use Release or Debug.)
 endif
