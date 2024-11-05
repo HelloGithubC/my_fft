@@ -24,7 +24,6 @@ class FFTPowerCPP:
         self.power = None
         self.fft = None
         self.is_deal = False
-        self.done_conj = False
 
     def run(
         self,
@@ -38,10 +37,9 @@ class FFTPowerCPP:
         field_type="complex",
         right=False,
         linear=True,
-        force_conj = False,
+        do_conj = True,
         nthreads=1,
     ):
-        do_conj = True if force_conj else (not self.done_conj)
         self.fft = FFTPower_CPP(self.BoxSize)
         self.attrs["kmin"] = kmin
         self.attrs["kmax"] = kmax
@@ -196,7 +194,7 @@ class Mesh:
         joblib.dump(self.attrs, output_dir + "/attrs_dict.pkl")
 
     @classmethod
-    def load(cls, input_dir, mode="real"):
+    def load(cls, input_dir, mode="complex"):
         attrs_dict = joblib.load(input_dir + "/attrs_dict.pkl")
         if mode == "real":
             real_field = np.load(input_dir + "/real_field.npy")
