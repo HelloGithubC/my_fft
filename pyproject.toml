@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools >= 61.0","wheel", "pybind11>=2.11"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "my_fft"
+description = "A simple package to do cic and calculate fftpower with 1D and 2D"
+version = "1.0"
+requires-python = ">=3.8"
+dependencies = [
+    'numpy>=1.20.0',
+    'scipy>=1.7.3',
+    "joblib"
+]
+authors = [
+    {name = "Xiao Liang", email = "xiaoliang5@mail2.sysu.edu.cn"}
+]
+readme = "README.md"
+

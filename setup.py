@@ -3,7 +3,7 @@ import subprocess
 from setuptools import setup, find_packages
 
 # Define the library name and paths
-lib_dir = 'myfft/lib'
+lib_dir = 'my_fft/lib'
 suffix = os.popen("python3-config --extension-suffix").read().replace("\n", "")
 fftpower_lib = os.path.join(lib_dir, f'fftpower{suffix}')
 mesh_lib = os.path.join(lib_dir, f'mesh{suffix}')
@@ -23,7 +23,7 @@ def build_libraries():
 
 # Check if the libraries exist, and build them if they don't
 if not check_libraries():
-    print("Libraries not found. Building the libraries...")
+    print(f"Libraries not found at {fftpower_lib} and {mesh_lib}. Building the libraries...")
     build_libraries()
 else:
     print("Libraries found. Skipping build.")
