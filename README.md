@@ -16,7 +16,7 @@ Python: >=3.8
 others: pybind11>=1.29.0. Recommend to install it by pip or conda, especially when you want to install my_fft with Method 1.
 
 ### Method 
-1. setup.py: pip install . (Recommend)
+1. setup.py or pyproject.toml: pip install . or python -m build(Recommend)
 
 2. Makefile: make && pip install .
 
