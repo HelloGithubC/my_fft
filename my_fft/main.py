@@ -178,7 +178,7 @@ class Mesh:
             return False
         return arr.dtype.char == "V"
 
-    def save(self, output_dir, mode="real"):
+    def save(self, output_dir, mode="complex"):
         if not self.is_run:
             raise ValueError("Mesh must run cic before saving")
         if not os.path.exists(output_dir):

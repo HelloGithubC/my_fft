@@ -349,6 +349,10 @@ void FFTPower::RunFromComplex(py::array_t<std::complex<double>>& power, py::arra
                 {
                     if (do_conj)
                         com_it(i,j,k) *= std::conj(com_it(i,j,k)); 
+                    if (com_it(i,j,k).real() < 0)
+                    {
+                        continue; // skip the negative part
+                    }
                     k_temp = std::sqrt(k_x_it(i)*k_x_it(i) + k_y_it(j)*k_y_it(j) + k_z_it(k)*k_z_it(k));
 
                     if (k_temp == 0 || k_temp < k_min_limit || k_temp > k_max_limit)
