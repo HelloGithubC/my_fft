@@ -1,4 +1,5 @@
 #include "fftpower.h"
+#include <iostream>
 #include <cstdio>
 #include <limits>
 #include <omp.h>
@@ -74,23 +75,27 @@ void FFTPower::CountNumber(py::array_t<int>& numbers, py::array_t<double>& k_arr
     this->CountNumberCore(numbers, k_array, mu_array, k_x_array, k_y_array, k_z_array,threads);
 }
 
-void FFTPower::DoConj(py::array_t<std::complex<float>> &complex_field, int nthreads)
+void FFTPower::RunPS3D(py::array_t<std::complex<float>> &complex_field, int nthreads)
 {
     auto com_it = complex_field.mutable_unchecked<3>();
 
     omp_set_num_threads(nthreads);
+    double boxsize_factor = this->boxSize[0] * this->boxSize[1] * this->boxSize[2];
+    // std::cout << "boxsize_factor: " << boxsize_factor << std::endl;
     #pragma omp for collapse(3) 
     for (int i=0; i<com_it.shape(0); i++)
     {
-        for (int j=0; j<com_it.shape(0); j++)
+        for (int j=0; j<com_it.shape(1); j++)
         {
-            for (int k=0; k<com_it.shape(0); k++)
+            for (int k=0; k<com_it.shape(2); k++)
             {
                 com_it(i, j, k) *= std::conj(com_it(i, j, k));
+                com_it(i, j, k).real(com_it(i,j,k).real() * boxsize_factor);
             }
         }
     }
 }
+
 
 int FFTPower::FindBin(double value, py::array_t<double>& array, bool order, bool right, bool linear)
 {
@@ -260,7 +265,7 @@ void FFTPower::CountNumberCore(py::array_t<int>& numbers, py::array_t<double>& k
     }
 }
 
-void FFTPower::RunFromComplex(py::array_t<std::complex<double>>& power, py::array_t<double>& power_mu, py::array_t<double>& power_k, py::array_t<int>& power_modes, py::array_t<std::complex<float>>& complex_field, py::array_t<double>& k_array, py::array_t<double>& mu_array, double k_min, double k_max, py::array_t<double>& k_x_array, py::array_t<double>& k_y_array, py::array_t<double>& k_z_array, std::string mode, bool right, bool linear, bool do_conj, int nthreads)
+void FFTPower::RunFFTPower(py::array_t<std::complex<double>> &power, py::array_t<double> &power_mu, py::array_t<double> &power_k, py::array_t<int> &power_modes, py::array_t<std::complex<float>> &ps_3d, py::array_t<double> &k_array, py::array_t<double> &mu_array, double k_min, double k_max, py::array_t<double> &k_x_array, py::array_t<double> &k_y_array, py::array_t<double> &k_z_array, std::string mode, bool right, bool linear, int nthreads)
 {
     if (power.ndim() != 2 || power_mu.ndim() != 2 || power_k.ndim() != 2)
     {
@@ -269,11 +274,11 @@ void FFTPower::RunFromComplex(py::array_t<std::complex<double>>& power, py::arra
     py::ssize_t k_bins_number = power.shape(0);
     py::ssize_t mu_bins_number = power.shape(1);
 
-    if (complex_field.ndim() != this->ndim)
+    if (ps_3d.ndim() != this->ndim)
     {
         throw std::runtime_error("The ndim of complex_field must be 3.");
     }
-    if (complex_field.shape(0) != k_x_array.shape(0) || complex_field.shape(1) != k_y_array.shape(0) || complex_field.shape(2) != k_z_array.shape(0))
+    if (ps_3d.shape(0) != k_x_array.shape(0) || ps_3d.shape(1) != k_y_array.shape(0) || ps_3d.shape(2) != k_z_array.shape(0))
     {
         throw std::runtime_error("The shape of complex_field must be the same as (k_x_array, k_y_array, k_z_array).");
     }
@@ -287,7 +292,7 @@ void FFTPower::RunFromComplex(py::array_t<std::complex<double>>& power, py::arra
         throw std::runtime_error("The ndim of k_x_array, k_y_array and k_z_array must be 1.");
     }
 
-    auto com_it = complex_field.mutable_unchecked<3>();
+    auto com_it = ps_3d.mutable_unchecked<3>();
     // #pragma omp for private(i,j,k)
     // for (i=0; i<com_it.shape(0); i++)
     // {
@@ -320,12 +325,6 @@ void FFTPower::RunFromComplex(py::array_t<std::complex<double>>& power, py::arra
         py::ssize_t k_index = 0;
         py::ssize_t mu_index = 0;
         double k_temp = 0.0;
-        std::complex<float> boxSize_factor(1.0f, 0.0f); 
-
-        for (int i=0; i<this->ndim; i++)
-        {
-            boxSize_factor *= this->boxSize[i];
-        }
 
         bool order = (k_array.at(0) <= k_array.at(1))? true : false;
 
@@ -347,9 +346,7 @@ void FFTPower::RunFromComplex(py::array_t<std::complex<double>>& power, py::arra
             {
                 for (int k=0; k<k_z_array.shape(0); k++)
                 {
-                    if (do_conj)
-                        com_it(i,j,k) *= std::conj(com_it(i,j,k)); 
-                    if (com_it(i,j,k).real() < 0)
+                    if (std::isnan(com_it(i,j,k).real()) || std::isnan(com_it(i,j,k).imag()))
                     {
                         continue; // skip the negative part
                     }
@@ -385,7 +382,7 @@ void FFTPower::RunFromComplex(py::array_t<std::complex<double>>& power, py::arra
                     }
                     if (k_index >= 0 && k_index < k_bins_number && mu_index >= 0 && mu_index < mu_bins_number)
                     {
-                        power_thread[0][k_index][mu_index] += com_it(i,j,k).real() * boxSize_factor.real() * factor;
+                        power_thread[0][k_index][mu_index] += com_it(i,j,k).real() * factor;
                         power_thread[1][k_index][mu_index] += k_temp * factor;
                         if (mode == "2d")
                         {
@@ -444,19 +441,18 @@ PYBIND11_MODULE(fftpower, m) {
              py::arg("bins"), py::arg("values"), py::arg("array"), 
              py::arg("right") = true, py::arg("linear") = true, 
              py::arg("threads") = 1)
-        .def("DoConj", &FFTPower::DoConj, py::arg("complex_field"), py::arg("nthreads") =1)
+        .def("RunPS3D", &FFTPower::RunPS3D, py::arg("complex_field"), py::arg("nthreads") =1)
         .def("IsConj", &FFTPower::IsConj)
         .def("CountNumber", &FFTPower::CountNumber, 
              py::arg("numbers"), py::arg("k_array"), 
              py::arg("mu_array"), py::arg("k_x_array"), 
              py::arg("k_y_array"), py::arg("k_z_array"), 
              py::arg("threads") = 1)
-        .def("RunFromComplex", &FFTPower::RunFromComplex, 
+        .def("RunFFTPower", &FFTPower::RunFFTPower, 
              py::arg("power"), py::arg("power_mu"), py::arg("power_k"), 
              py::arg("power_modes"),
-             py::arg("complex_field"), py::arg("k_array"), 
+             py::arg("ps_3d"), py::arg("k_array"), 
              py::arg("mu_array"), py::arg("k_min"), py::arg("k_max"), 
              py::arg("k_x_array"), py::arg("k_y_array"), py::arg("k_z_array"), 
-             py::arg("mode") = "1d", py::arg("right") = false, py::arg("linear") = true, py::arg("do_conj") = false,
-             py::arg("nthreads") = 1);
+             py::arg("mode") = "1d", py::arg("right") = false, py::arg("linear") = true, py::arg("nthreads") = 1);
 }
